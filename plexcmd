@@ -2,7 +2,7 @@
 #player="192.168.60.102"
 player="127.0.0.1"
 server="192.168.60.102"
-command=''
+action=''
 case "$1" in
 	help)
 		echo "Usage: plexcmd [Command] [Optional Arguments]"
@@ -21,10 +21,11 @@ case "$1" in
 		if [[ "$2" == "interactive" ]]; then
 			interactive=1
 		else
-			command="$2"
+			action="$2"
 		fi
 		if [[ -z "$2" ]]; then
 			echo "Commands:"
+			echo "	$(tput setaf 1)interactive$(tput sgr0)"
 			echo "	moveUp"
 			echo "	moveDown"
 			echo "	moveLeft"
@@ -41,7 +42,7 @@ case "$1" in
 		;;
 	playback)
 		controller="playback"
-		command="$2"
+		action="$2"
 		if [[ -z "$2" ]]; then
 			echo "Commands:"
 			echo "	play"
@@ -61,16 +62,16 @@ case "$1" in
 		controller="application"
 		#escape passed in argument
 		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
-		command="sendString?text=$value"
+		action="sendString?text=$value"
 		;;
 	pause)
 		controller="playback"
-		command="pause"
+		action="pause"
 		;;
 	setvolume)
 		controller="application"
 		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
-		command="setVolume?level=$value"
+		action="setVolume?level=$value"
 		;;
 	*)
 		echo "Unrecognized command. Use plexcmd help for usage details."
@@ -78,33 +79,56 @@ case "$1" in
 esac
 
 if [[ "$interactive" == "1" ]]; then
+	echo "Arrow keys to navigate"
+	echo "Enter to select"
+	# keys
+	au="`echo -e '\e[A'`" # arrow up
+	ad="`echo -e '\e[B'`" # arrow down
+	ar="`echo -e '\e[C'`" # arrow right
+	al="`echo -e '\e[D'`" # arrow left
+	ec="`echo -e '\e'`"   # escape
 	while [[ "$INPUT" != "q" ]]; do
-		read -n1 INPUT
-		command=""
+		read -sn1 INPUT
+		if [[ "$INPUT" == "$ec" ]];then
+			read -sn2 INPUT2
+			INPUT="$INPUT$INPUT2";
+		fi
+		action=""
 		case "$INPUT" in
-			$'\030')
-				command="moveUp";
+			"$au")
+				action="moveUp";
 			;;
-			OC)
-				command="moveRight";
+			"$ar")
+				action="moveRight";
 			;;
-			OB)
-				command="moveDown";
+			"$ad")
+				action="moveDown";
 			;;
-			OD)
-				command="moveLeft";
+			"$al")
+				action="moveLeft";
+			;;
+			"")
+				action="select";
+			;;
+			"")
+				action="back";
+			;;
+			q)
+				exit 0;
+			;;
+			*)
+				echo "Button not recognized."	
 			;;
 		esac
-		url="http://$server:32400/system/players/$player/$controller/"
-		echo "$command"
-		curl -s "$url/$command"
-		INPUT=""
+		url="http://$server:32400/system/players/$player/$controller/$action"
+		echo "$action"
+		curl -s "$url"
 	done
 else
-	if [ -n "$command" ]; then
-		url="http://$server:32400/system/players/$player/$controller/$command"
+	if [ -n "$action" ]; then
+		url="http://$server:32400/system/players/$player/$controller/$action"
 		#debug echo
-		echo $command
+		echo $action
 		echo $url
 		curl -s $url
 	fi
