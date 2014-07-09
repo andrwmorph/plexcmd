@@ -1,0 +1,111 @@
+#!/bin/bash
+#player="192.168.60.102"
+player="127.0.0.1"
+server="192.168.60.102"
+command=''
+case "$1" in
+	help)
+		echo "Usage: plexcmd [Command] [Optional Arguments]"
+		echo "Commands:"
+		echo "	navigate [option]"
+		echo "	playback [option]"
+		echo "	notify [text]"
+		echo "	pause"
+		echo "	setvolume [1-100]"
+		;;
+	get_clients)
+		curl -s "http://$server:32400/clients"
+		;;
+	navigate)
+		controller="navigation"
+		if [[ "$2" == "interactive" ]]; then
+			interactive=1
+		else
+			command="$2"
+		fi
+		if [[ -z "$2" ]]; then
+			echo "Commands:"
+			echo "	moveUp"
+			echo "	moveDown"
+			echo "	moveLeft"
+			echo "	moveRight"
+			echo "	pageUp"
+			echo "	pageDown"
+			echo "	nextLetter"
+			echo "	previousLetter"
+			echo "	select"
+			echo "	back"
+			echo "	contextMenu"
+			echo "	toggleOSD"
+		fi
+		;;
+	playback)
+		controller="playback"
+		command="$2"
+		if [[ -z "$2" ]]; then
+			echo "Commands:"
+			echo "	play"
+			echo "	pause"
+			echo "	stop"
+			echo "	rewind"
+			echo "	fastForward"
+			echo "	stepForward"
+			echo "	bigStepForward"
+			echo "	stepBack"
+			echo "	bigStepBack"
+			echo "	skipNext"
+			echo "	skipPrevious"
+		fi
+		;;
+	notify)
+		controller="application"
+		#escape passed in argument
+		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
+		command="sendString?text=$value"
+		;;
+	pause)
+		controller="playback"
+		command="pause"
+		;;
+	setvolume)
+		controller="application"
+		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
+		command="setVolume?level=$value"
+		;;
+	*)
+		echo "Unrecognized command. Use plexcmd help for usage details."
+		;;
+esac
+
+if [[ "$interactive" == "1" ]]; then
+	while [[ "$INPUT" != "q" ]]; do
+		read -n1 INPUT
+		command=""
+		case "$INPUT" in
+			$'\030')
+				command="moveUp";
+			;;
+			OC)
+				command="moveRight";
+			;;
+			OB)
+				command="moveDown";
+			;;
+			OD)
+				command="moveLeft";
+			;;
+		esac
+		url="http://$server:32400/system/players/$player/$controller/"
+		echo "$command"
+		curl -s "$url/$command"
+		INPUT=""
+	done
+else
+	if [ -n "$command" ]; then
+		url="http://$server:32400/system/players/$player/$controller/$command"
+		#debug echo
+		echo $command
+		echo $url
+		curl -s $url
+	fi
+fi
