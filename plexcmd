@@ -1,7 +1,8 @@
 #!/bin/bash
-#player="192.168.60.102"
-player="127.0.0.1"
-server="192.168.60.102"
+#Bash script to remote control a plex client
+
+player="127.0.0.1" #player to use
+server="192.168.60.102" #server to use
 action=''
 case "$1" in
 	help)
@@ -13,10 +14,10 @@ case "$1" in
 		echo "	pause"
 		echo "	setvolume [1-100]"
 		;;
-	get_clients)
+	get_clients) #List the connected clients
 		curl -s "http://$server:32400/clients"
 		;;
-	navigate)
+	navigate) #Navigation commands
 		controller="navigation"
 		if [[ "$2" == "interactive" ]]; then
 			interactive=1
@@ -40,7 +41,7 @@ case "$1" in
 			echo "	toggleOSD"
 		fi
 		;;
-	playback)
+	playback) #Playback commands
 		controller="playback"
 		action="$2"
 		if [[ -z "$2" ]]; then
@@ -58,17 +59,17 @@ case "$1" in
 			echo "	skipPrevious"
 		fi
 		;;
-	notify)
+	notify) #Send a notification
 		controller="application"
 		#escape passed in argument
 		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
 		action="sendString?text=$value"
 		;;
-	pause)
+	pause) #Pause playback
 		controller="playback"
 		action="pause"
 		;;
-	setvolume)
+	setvolume) #Set the volume
 		controller="application"
 		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
 		action="setVolume?level=$value"
@@ -78,6 +79,7 @@ case "$1" in
 		;;
 esac
 
+#Interactive mode
 if [[ "$interactive" == "1" ]]; then
 	echo "Arrow keys to navigate"
 	echo "Enter to select"
