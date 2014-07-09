@@ -4,16 +4,26 @@
 player="127.0.0.1" #player to use
 server="192.168.60.102" #server to use
 action=''
+
+function sendcmd () {
+		curl -s "http://$server:32400/system/players/$player/$controller/$action"
+}
+
 case "$1" in
 	help)
 		echo "Usage: plexcmd [Command] [Optional Arguments]"
 		echo "Commands:"
+		echo "	control"
+		echo "	get_clients"
 		echo "	navigate [option]"
 		echo "	playback [option]"
 		echo "	notify [text]"
 		echo "	pause"
 		echo "	setvolume [1-100]"
 		;;
+	control)
+		interactive=1;
+	;;
 	get_clients) #List the connected clients
 		curl -s "http://$server:32400/clients"
 		;;
@@ -65,14 +75,20 @@ case "$1" in
 		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
 		action="sendString?text=$value"
 		;;
+	getsessions)
+		curl -s "http://$server:32400/status/sessions"
+		;;
+	getprefs)
+		curl -s "http://$server:32400/:/prefs"
+	;;	
 	pause) #Pause playback
 		controller="playback"
 		action="pause"
 		;;
 	setvolume) #Set the volume
 		controller="application"
-		value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
-		action="setVolume?level=$value"
+		#value=$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$2")
+		action="setVolume?level=$2"
 		;;
 	*)
 		echo "Unrecognized command. Use plexcmd help for usage details."
@@ -98,22 +114,36 @@ if [[ "$interactive" == "1" ]]; then
 		action=""
 		case "$INPUT" in
 			"$au")
+				controller="navigation"
 				action="moveUp";
 			;;
 			"$ar")
+				controller="navigation"
 				action="moveRight";
 			;;
 			"$ad")
+				controller="navigation"
 				action="moveDown";
 			;;
 			"$al")
+				controller="navigation"
 				action="moveLeft";
 			;;
 			"")
+				controller="navigation"
 				action="select";
 			;;
 			"")
+				controller="navigation"
 				action="back";
+			;;
+			"-")
+				controller=""
+				action=""
+			;;
+			"=")
+				controller=""
+				action=""
 			;;
 			q)
 				exit 0;
@@ -122,9 +152,8 @@ if [[ "$interactive" == "1" ]]; then
 				echo "Button not recognized."	
 			;;
 		esac
-		url="http://$server:32400/system/players/$player/$controller/$action"
+		sendcmd
 		echo "$action"
-		curl -s "$url"
 	done
 else
 	if [ -n "$action" ]; then
