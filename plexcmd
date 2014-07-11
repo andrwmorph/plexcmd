@@ -133,6 +133,18 @@ if [[ "$interactive" == "1" ]]; then
 				controller="navigation"
 				action="select";
 			;;
+			"p")
+				controller="playback"
+				action="pause";
+			;;
+			">")
+				controller="playback"
+				action="stepForward";
+			;;
+			"<")
+				controller="playback"
+				action="stepBack";
+			;;
 			"")
 				controller="navigation"
 				action="back";
